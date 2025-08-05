@@ -1,7 +1,8 @@
 "use client"
 
-import React,{useEffect, useRef,Component} from 'react';
+import React,{Component} from 'react';
 import * as echarts from 'echarts';
+import Guide from './Guide';
 
 export default class Ble extends Component {
 
@@ -9,7 +10,7 @@ export default class Ble extends Component {
     constructor() {
         super();
         this.chartRef = React.createRef();
-        this.state = { chartData: [], deviceName:''};
+        this.state = { chartData: [], deviceName:'', guide: false };
         this.BLEConnect = this.BLEConnect.bind(this);
     }
 
@@ -43,6 +44,13 @@ export default class Ble extends Component {
             .catch(e => console.error(e));
     }
 
+    StartGuide = () => {
+        this.setState({guide: true});
+    }
+
+    EndGuide = () => {
+        this.setState({guide: false});  
+    }
 
     initChart = () => {
         if (!this.chartRef.current) return;
@@ -78,8 +86,16 @@ export default class Ble extends Component {
 
         window.addEventListener('resize', () => {
             chartInstance.resize();
-            });
-        }
+        });
+
+        const observer = new ResizeObserver(() => {
+            chartInstance.resize();
+        });
+
+        // 观察图表容器
+        observer.observe(this.chartRef.current);
+
+    }
 
     updateChartData = () => {
         if (this.chartInstance) {
@@ -104,13 +120,22 @@ export default class Ble extends Component {
         const currentHearRate = this.state.chartData[this.state.chartData.length-1];
         const deviceName = this.state.deviceName;
         return(
-            <div style={{ width: '100%'}}>
+            <><div style={{ width: '100%'}}>
+                <Guide guide={this.state.guide} endGuide={this.EndGuide} />
+                { !this.state.guide &&
                 <div className='flex justify-center items-center'>
+                    {!currentHearRate && <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-3' onClick={this.StartGuide} >Start Guide</button>}
                     {!currentHearRate && <button className='bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded' onClick={this.BLEConnect} >Start Monitoring!</button>}
-                    {currentHearRate && <p>Current Heart Rate {`[ ${deviceName} ]`}: <span style={{color:'#C20000'}}>{currentHearRate[1]}</span></p>}
                 </div>
+                }             
+            </div>
+            <div style={{ width: '80%',display: currentHearRate ? 'block' : 'none' }}>
+                <div className='flex justify-center items-center'>
+                    {currentHearRate && <p>Current Heart Rate {`[ ${deviceName} ]`}: <span style={{color:'#C20000'}}>{currentHearRate[1]}</span></p>}
+                </div>           
                 <div ref={this.chartRef}  style={{ width: '100%', height: '500px' }}></div>
             </div>
+            </>
         );
     }
 }
